@@ -1,118 +1,88 @@
 #include "Analyze.h"
-using namespace img;
+using namespace UC;
 
 Analyze::Analyze(const std::string filename) {
   // Set filename
   this->filename =  filename;
+  // Populate header fields
+  this->populateHeaderFields();
+  }
+
+void Analyze::populateHeaderFields(){
   std::ifstream     file; /* analyze file to be parsed */
-  Reader<int>       read_int32;
-  Reader<char>      read_char;
-  Reader<char[4]>   read_char4;
-  Reader<char[8]>   read_char8;
-  Reader<char[10]>  read_char10;
-  Reader<char[18]>  read_char18;
-  Reader<short int> read_int16;
-  Reader<float>     read_float;
   //register exceptions for file
   file.exceptions(std::fstream::failbit | 
                         std::fstream::eofbit  | 
                         std::fstream::badbit);
 
-  try {
     // Open .hdr file, exit failure on err
     file.open(filename.c_str());
-/*    // Slurp sizeof_hdr and flip endianness if needed
-    // sizeof_hdr : int32
-    file.read(read_int32.buf, sizeof(int));
-    this->sizeof_hdr = read_int32.t;
-    //this->shift32(&bytes[0], &this->sizeof_hdr);
-    
-    // data_type : uchar[10]
-    file.read(read_char10.buf, sizeof(unsigned char[10]));
-    this->data_type = read_char10.t;
-    
-    // db_name : uchar[18]
-    file.read(read_char18.buf, sizeof(unsigned char[18]));
-    this->db_name = read_char18.t;
-
-    // extents : int32
-    file.read(read_int32.buf, sizeof(int));
-    this->extents = read_int32.t;
-    //this->shift32(&bytes[0], &this->extents);
-    
-    // session_error : int16
-    file.read(read_int16.buf, sizeof(short int));
-    this->session_error = read_int16.t;
-    //this->shift16(&bytes[0],&this->session_error);
-    
-    // regular : uchar
-    file.read(read_char.buf, sizeof(unsigned char));
-    this->regular = read_char.t;
-    
-    // hkey_un0 : uchar
-    file.read(read_char.buf, sizeof(unsigned char));
-    this->hkey_un0 = read_char.t;
-    // Total Offset:  39
-
-    // Now we grab the 7 dimension parameters and store them in a vector
-    for(int i = 0; i <= 7; i++) {
-      file.read(read_int16.buf, sizeof(short int));
-      this->dimensions.push_back(read_int16.t);
-    }
-    // vox_units : uchar[4] 
-    file.read(read_char4.buf, sizeof(char[4]));
-    this->vox_units = read_char4.t;
-    
-    file.read(read_char8.buf, sizeof(char[8]));
-    this->cal_units = read_char8.t;
-    file.read(read_int16.buf, sizeof(short));
-    this->unused1 = read_int16.t;
-
-    file.read(read_int16.buf, sizeof(short));
-    this->datatype = read_int16.t;
-
-    file.read(read_int16.buf, sizeof(short));
-    this->bitpix = read_int16.t;
-    
-    file.read(read_int16.buf, sizeof(short));
-    this->dim_un0 = read_int16.t;
-    
-    for(int i = 0; i < 8;i++) {
-      file.read(read_float.buf, sizeof(float));
-      this->pixdim.push_back(read_float.t);
-    }
-    file.read(read_float.buf, sizeof(float));
-    this->vox_offset = read_float.t;
-    
-    // store in the 3 funused values
-    for(int i = 0;i < 3;i++) {
-      file.read(read_float.buf, sizeof(float));
-      this->funused.push_back(read_float.t);
-    }
-    file.read(read_float.buf, sizeof(float));
-    this->cal_max = read_float.t;
-
-    file.read(read_float.buf, sizeof(float));
-    this->cal_min = read_float.t;
-
-    file.read(read_float.buf, sizeof(float));
-    this->cal_min = read_float.t; */
+    file.read(reinterpret_cast<char*>(&this->hdr), sizeof(dsr)); 
     file.close();
-  }
-  catch (std::out_of_range e) {
-    std::cout << e.what() << std::endl; 
-  }
-  catch(std::exception &e){
-    std::cout << e.what() << std::endl; 
-  }
 }
-template<typename T> 
-void Analyze::setField(T* field, std::ifstream &file) {
+void Analyze::PrintHeader() {
+  std::cout << "sizeof_hdr: "    << this->hdr.hk.sizeof_hdr    
+            << std::endl
 
-}
-template<typename T>
-const T* Analyze::getField(std::string type) const {
+            << "data_type: '"    << std::setfill(' ') << std::setw(10)
+            << this->hdr.hk.data_type << "'" << std::endl
 
+            << "db_name: '" << std::setfill(' ') << std::setw(18) 
+            << this->hdr.hk.db_name << "'" << std::endl 
+
+            << "extents: "       << this->hdr.hk.extents       
+            << std::endl 
+
+            << "session_error: " << this->hdr.hk.session_error 
+            << std::endl
+
+            << "regular: "       << this->hdr.hk.regular       
+            << std::endl
+
+            << "hkey_un0: '" << std::setfill(' ') << std::setw(1)  
+            << this->hdr.hk.hkey_un0 << "'" << std::endl;
+
+  std::cout << "dime.dim: [0] |  [1] |  [2] |  [3] |  [4] |  [5] |  [6] |  "
+            << "[7] |" << std::endl << "\t ";
+
+  for(int i = 0;i < 8;i++) {
+    std::cout << std::setfill('0') << std::setw(4) << this->hdr.dime.dim[i] 
+      << " | ";
+
+  }
+
+  std::cout  << std::endl;
+  std::cout << "[hex]\t ";
+  std::cout << std::hex << std::showbase; 
+  for(int i = 0;i < 8; i++) {
+    std::cout << std::setfill(' ') << std::setw(4)
+              << this->hdr.dime.dim[i] << " | ";
+  }
+
+  std::cout << std::endl;
+
+  std::cout << "dime.vox_units: '" << std::setfill(' ') << std::setw(4)
+            << this->hdr.dime.vox_units << "'" << std::endl;
+  std::cout << "dime.cal_units: '" << std::setfill(' ') << std::setw(8) 
+            << this->hdr.dime.cal_units << "'" << std::endl;
+
+  std::cout << "pixdim:    [0] |   [1] |   [2] |   [3] |   [4] |   [5] |   ";
+  std::cout << "[6] |  [7] |" << std::endl;
+  
+  std::cout  << "\t " << std::fixed << std::setprecision(3);
+  for(int i = 0;i < 8; i++) {
+    std::cout << this->hdr.dime.pixdim[i] <<  " | ";
+  }
+  std::cout << std::endl;
+  
+  std::cout << "vox_offset: " << this->hdr.dime.vox_offset << std::endl;
+  std::cout << "funused1: " << this->hdr.dime.funused1 << std::endl;
+  std::cout << "funused2: " << this->hdr.dime.funused2 << std::endl;
+  std::cout << "funused3: " << this->hdr.dime.funused3 << std::endl;
+  std::cout << "cal_max: " << this->hdr.dime.cal_max << std::endl;
+  std::cout << "cal_min: " << this->hdr.dime.cal_min << std::endl;
+  std::cout << "compressed: " << this->hdr.dime.compressed << std::endl;
+  std::cout << "verified: " << this->hdr.dime.verified << std::endl;
 }
 void Analyze::shift32(const char* bytes, int *swapped) {
   *swapped = (*(int *)bytes >> 24) |
